@@ -5,6 +5,8 @@
 #700 KB and thus can't be pushed through GitHub and instead must be 
 #shared via email or DropBox.
 
+#Original data source : https://archive.ics.uci.edu/ml/datasets/Spambase
+
 spambase <- read.csv("spambase.data")
 
 names <- c("word_make", "word_address", "word_all", "word_3d", "word_our", "word_over", "word_remove",
