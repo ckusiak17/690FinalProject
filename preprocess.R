@@ -1,0 +1,1 @@
+spambase$spam <- factor(spambase$spam)
