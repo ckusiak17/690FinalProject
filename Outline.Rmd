@@ -1,0 +1,82 @@
+---
+title: "Spam Classification"
+author: "Greg Guranich, Coco Kusiak, and Xiang Li"
+date: "5/3/2018"
+output: pdf_document
+---
+
+```{r, include = FALSE}
+require(mosaic)
+require(xtable)
+options(xtable.comment = FALSE)
+load("spam.Rda")
+```
+
+#Abstract  
+
+
+
+
+
+
+
+#Introduction  
+
+##The Problem:  
+
+##The Data:  
+
+
+- 4,600 observations 
+- 58 variables on nemail attribute frequency 
+- No missing values 
+
+
+
+
+
+
+
+
+
+
+#Methods 
+
+##Logistic Regression
+
+##Penalized Logistic Regression  
+
+##Linear Discriminant Analysis  
+
+##Quadratic Discriminant Analysis  
+
+##K-nearest Neighbors  
+
+
+
+
+
+
+
+
+
+#Results  
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Discussion  
+
+
+
+
+
