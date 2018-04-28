@@ -43,15 +43,41 @@ abstract kkkkk
 
 #Methods 
 
-##Logistic Regression
+##Dimension Reduction 
 
-##Penalized Logistic Regression  
+##LASSO  
 
-##Linear Discriminant Analysis  
 
-##Quadratic Discriminant Analysis  
 
-##K-nearest Neighbors  
+
+##Ridge Regression  
+
+
+
+
+##Principle Components Analysis  
+
+
+
+
+
+
+
+##Classification
+
+###Logistic Regression
+
+###Penalized Logistic Regression  
+
+###Linear Discriminant Analysis  
+
+###Quadratic Discriminant Analysis  
+
+###K-nearest Neighbors  
+
+###Support Vector Machines  
+
+
 
 
 
