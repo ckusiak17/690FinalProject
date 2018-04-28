@@ -29,7 +29,9 @@ load("spam.Rda")
 
 - 4,600 observations 
 - 58 variables on nemail attribute frequency 
+- About 40% of emails are spam 
 - No missing values 
+
 
 
 
