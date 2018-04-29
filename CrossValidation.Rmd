@@ -9,7 +9,9 @@ output: pdf_document
 require(mosaic)
 require(xtable)
 require(caret)
+require(MASS)
 require(kernlab)
+require(glmnet)
 options(xtable.comment = FALSE)
 load("spam.Rda")
 ```
@@ -20,7 +22,15 @@ Just to begin with, I'm going to set up the loop that runs 10-fold cross validat
 ```{r}
 #make an empty matrix to hold the prediction errors
 #this is 7 X 10 for the 7 classification methods and the 10 CV folds
-errors <- matrix(nrow = 7, ncol = 10)
+error <- auc <- false.pos <- matrix(nrow = 10, ncol = 10)
+method_names <- c("Logistic Regressio", "LASSO", "Ridge", "Elastic Net", 
+                  "LDA", "QDA", "KNN", "Linear SVM", "Polynomial SVM",
+                  "Radial SVM")
+rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
+
+lambda.l <- lambda.r <-  lambda.e <- k.knn <- c()
+log <- plog.l <- plog.r <- plog.e <- lda <- qda <- knn <- svm.l <- svm.p <- svm.r <- list()
+
 
 
 spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
@@ -28,21 +38,88 @@ for (i in 1:10){
   #create a training and test set
   #[,-59] removes the index variable
   train <- filter(spam, index == i)[,-59]
-  test <- filter(spam, index != i)[,-59]
+  test.spam <- filter(spam, index != i)$spam
+  test <- filter(spam, index != i)[,-c(58,59)]
   
+  
+  #logistic regression
   log.fit <- glm(spam ~ ., data = train, famil= binomial)
   log.probs <- predict(log.fit, test, type = "response")
   log.pred <- ifelse(log.probs > .5, 1, 0)
-  error[1, i] <- mean(log.pred != test$spam)
+  error[1, i] <- mean(log.pred != test.spam)
+  auc[1, i] <- auc(log.pred, test.spam)
+  false.pos[1, i] <- table(log.pred, test.spam)[2,1]/nrow(test)
+  log[[i]] <- log.fit
+  
+  
+  #data set up for penalized logistic regressions
+  x <- as.matrix(train[,-58]) #removes spam from the dataframe
+  x.test <- as.matrix(test)
+  
+  #lasso penalty, alpda = 1
+  plog.l.fit <- glmnet(x, train$spam, family = "binomial", alpha=1, standardize = TRUE)
+  plog.l.probs <- predict(plog.l.fit, x.test, type = "response")
+  plog.l.pred <- ifelse(plog.l.probs > .5, 1, 0)
+  l.error <- c()
+  l.false <- c()
+  for (lambda in 1:ncol(plog.l.pred)){
+    l.error[lambda] <-  mean(plog.l.pred[,lambda] != test.spam)
+    l <- data.frame(pred = plog.l.pred[,lambda], true = test.spam)
+    l.false[lambda] <- nrow(filter(l, pred == 1, true == 0))/nrow(test)
+  }
+  error[2, i] <- min(l.error) #chooses error for best penalty
+  false.pos[2, i] <- l.false[which.min(l.error)]
+  auc[2, i] <- auc(plog.l.pred[,which.min(l.error)], test.spam)
+  lambda.l[i] <- plog.l.fit$lambda[which.min(l.error)] #identifies best lambda from model fit
+  plog.l[[i]] <- plog.l.fit
+  
+  #ridge penalty, alpha = 0
+  plog.r.fit <- glmnet(x, train$spam, family = "binomial", alpha = 0)
+  plog.r.probs <- predict(plog.r.fit, x.test, type = "response")
+  plog.r.pred <- ifelse(plog.r.probs > .5, 1, 0)
+  r.error <- c()
+  r.false <- c()
+  for (lambda in 1:ncol(plog.r.pred)){
+    r.error[lambda] <-  mean(plog.r.pred[,lambda] != test.spam)
+    r <- data.frame(pred = plog.r.pred[,lambda], true = test.spam)
+    r.false[lambda] <- nrow(filter(r, pred == 1, true == 0))/nrow(test)
+  }
+  error[3, i] <- min(r.error)
+  auc[3, i] <- auc(plog.r.pred[,which.min(r.error)], test.spam)
+  false.pos[3, i] <- r.false[which.min(r.error)]
+  lambda.r[i] <- plog.r.fit$lambda[which.min(r.error)]
+  plog.r[[i]] <- plog.r.fit
+  
+  #elastic net penalty with equal mixing, alpha = 0.5
+  plog.e.fit <- glmnet(x, train$spam, family = "binomial", alpha = 0.5)
+  plog.e.probs <- predict(plog.e.fit, x.test, type = "response")
+  plog.e.pred <- ifelse(plog.e.probs > .5, 1, 0)
+  e.error <- c()
+  e.false <- c()
+  for (lambda in 1:ncol(plog.e.pred)){
+    e.error[lambda] <-  mean(plog.e.pred[,lambda] != test.spam)
+    e <- data.frame(pred = plog.e.pred[,lambda], true = test.spam)
+    e.false[lambda] <- nrow(filter(e, pred == 1, true == 0))/nrow(test)
+  }
+  error[4, i] <- min(e.error)
+  auc[4, i] <- auc(plog.e.pred[,which.min(e.error)], test.spam)
+  false.pos[4, i] <- e.false[which.min(e.error)]
+  lambda.e[i] <- plog.e.fit$lambda[which.min(e.error)]
+  plog.e[[i]] <- plog.e.fit
   
   lda.fit <- lda(spam ~., data = train)
   lda.pred <- predict(lda.fit, test)$class
-  error[2, i] <- mean(lda.pred != test$spam)
+  error[5, i] <- mean(lda.pred != test.spam)
+  auc[5, i] <- auc(ifelse(lda.pred == 1, 1, 0), test.spam) #needed to convert from factor
+  false.pos[5, i] <- table(lda.pred, test.spam)[2,1]/nrow(test)
+  lda[[i]] <- lda.fit
   
-  qda.fit <- qda(spam ~., data = train)
-  qda.pred <- predict(qda.fit, test)$class
-  error[3, i] <- mean(qda.pred != test$spam)
-  
+  #qda.fit <- qda(spam ~., data = train)
+  #qda.pred <- predict(qda.fit, test)$class
+  #error[6, i] <- mean(qda.pred != test.spam)
+  #auc[6, i] <- auc(ifelse(qda.pred == 1, 1, 0), test.spam)
+  #false.pos[6, i] <- table(qda.pred, test.spam)[2,1]/nrow(test)
+  #qda[[i]] <- qda.fit
   
   #this runs a 10 fold cross validation to determine
   #which value of k is optimal for knn
@@ -55,8 +132,11 @@ for (i in 1:10){
              metric     = "Accuracy",
              data       = train)
   knn.pred <- predict(knn.fit, test)
-  error[4, i] <- mean(knn.pred != test$spam)
-  
+  error[7, i] <- mean(knn.pred != test.spam)  
+  auc[7, i] <- auc(ifelse(knn.pred == 1, 1,0 ), test.spam)
+  false.pos[7, i] <- table(knn.pred, test.spam)[2,1]/nrow(test)
+  k.knn[i] <- knn.fit$bestTune[1,1]
+  knn[[i]] <- knn.fit
   
   #each of the svm methods also require an optimal value for C, 
   #the train() function here runs CV for this determination
@@ -67,26 +147,41 @@ for (i in 1:10){
                 preProcess = c("center", "scale"),
                 tuneLength = 10)
   svm.l.pred <- predict(svm.l.fit, test)
-  error[5, i] <- mean(svm.l.pred != test$spam)
+  error[8, i] <- mean(svm.l.pred != test.spam)
+  auc[8, i] <- auc(ifelse(svm.l.pred ==1, 1, 0 ), test.spam)
+  false.pos[8, i] <- table(svm.l.pred, test.spam)[2,1]/nrow(test)
+  svm.l[[i]] <- svm.l.fit
   
-  svm.p.fit <- train(spam ~., data = train, 
-                method = "svmPoly",
-                uneGrid   = expand.grid(c = 1:10),
-                trControl=trControl,
-                preProcess = c("center", "scale"),
-                tuneLength = 10)
-  svm.p.pred <- predict(svm.p.fit, test)
-  error[6, i] <- mean(svm.p.pred != test$spam)
   
-  svm.r.fit <- train(spam ~., data = train, 
-                method = "svmRadial",
-                uneGrid   = expand.grid(c = 1:10),
-                trControl=trControl,
-                preProcess = c("center", "scale"),
-                tuneLength = 10)
-  svm.r.pred <- predict(svm.r.fit, test)
-  error[7, i] <- mean(svm.r.pred != test$spam)
+  #svm.p.fit <- train(spam ~., data = train, 
+  #              method = "svmPoly",
+  #              uneGrid   = expand.grid(c = 1:10),
+  #              trControl=trControl,
+  #              preProcess = c("center", "scale"),
+  #              tuneLength = 10)
+  #svm.p.pred <- predict(svm.p.fit, test)
+  #error[9, i] <- mean(svm.p.pred != test.spam)
+  #auc[9, i] <- auc(ifelse(svm.p.pred ==1, 1, 0 ), test.spam)
+  #false.pos[9, i] <- table(svm.p.pred, test.spam)[2,1]/nrow(test)
+  #svm.p[[i]] <- svm.p.fit
+  
+  #svm.r.fit <- train(spam ~., data = train, 
+  #              method = "svmRadial",
+  #              uneGrid   = expand.grid(c = 1:10),
+  #              trControl=trControl,
+  #              preProcess = c("center", "scale"),
+  #              tuneLength = 10)
+  #svm.r.pred <- predict(svm.r.fit, test)
+  #error[10, i] <- mean(svm.r.pred != test.spam)
+  #auc[10, i] <- auc(ifelse(svm.r.pred ==1, 1, 0 ), test.spam)
+  #false.pos[10, i] <- table(svm.r.pred, test.spam)[2,1]/nrow(test)
+  #svm.r[[i]] <- svm.r.fit
   
 }
+
+save(error, auc, false.pos, 
+     lambda.l, lambda.r, lambda.e, k.knn,
+     log, plog.l, plog.r, plog.e, lda, qda, knn, svm.l, svm.p, svm.r,
+     file = "CrossValidation.Rda")
 ```
 
