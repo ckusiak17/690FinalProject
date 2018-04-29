@@ -45,6 +45,8 @@ abstract kkkkk
 
 ##Dimension Reduction 
 
+
+
 ##LASSO  
 
 
@@ -66,8 +68,6 @@ abstract kkkkk
 ##Classification
 
 ###Logistic Regression
-
-###Penalized Logistic Regression  
 
 ###Linear Discriminant Analysis  
 
