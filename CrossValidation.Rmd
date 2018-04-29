@@ -1,0 +1,92 @@
+---
+title: "Cross Validation"
+author: "Coco Kusiak"
+date: "4/28/2018"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+require(mosaic)
+require(xtable)
+require(caret)
+require(kernlab)
+options(xtable.comment = FALSE)
+load("spam.Rda")
+```
+
+Just to begin with, I'm going to set up the loop that runs 10-fold cross validation just on the 5 classification methods: Logistic Regression, LDA, QDA, KNN, and SVM.  
+
+
+```{r}
+#make an empty matrix to hold the prediction errors
+#this is 7 X 10 for the 7 classification methods and the 10 CV folds
+errors <- matrix(nrow = 7, ncol = 10)
+
+
+spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
+for (i in 1:10){
+  #create a training and test set
+  #[,-59] removes the index variable
+  train <- filter(spam, index == i)[,-59]
+  test <- filter(spam, index != i)[,-59]
+  
+  log.fit <- glm(spam ~ ., data = train, famil= binomial)
+  log.probs <- predict(log.fit, test, type = "response")
+  log.pred <- ifelse(log.probs > .5, 1, 0)
+  error[1, i] <- mean(log.pred != test$spam)
+  
+  lda.fit <- lda(spam ~., data = train)
+  lda.pred <- predict(lda.fit, test)$class
+  error[2, i] <- mean(lda.pred != test$spam)
+  
+  qda.fit <- qda(spam ~., data = train)
+  qda.pred <- predict(qda.fit, test)$class
+  error[3, i] <- mean(qda.pred != test$spam)
+  
+  
+  #this runs a 10 fold cross validation to determine
+  #which value of k is optimal for knn
+  trControl <- trainControl(method  = "cv",
+                          number  = 10)
+  knn.fit <- train(spam ~ .,
+             method     = "knn",
+             tuneGrid   = expand.grid(k = 1:10),
+             trControl  = trControl,
+             metric     = "Accuracy",
+             data       = train)
+  knn.pred <- predict(knn.fit, test)
+  error[4, i] <- mean(knn.pred != test$spam)
+  
+  
+  #each of the svm methods also require an optimal value for C, 
+  #the train() function here runs CV for this determination
+  svm.l.fit <- train(spam ~., data = train, 
+                method = "svmLinear",
+                uneGrid   = expand.grid(c = 1:10),
+                trControl=trControl,
+                preProcess = c("center", "scale"),
+                tuneLength = 10)
+  svm.l.pred <- predict(svm.l.fit, test)
+  error[5, i] <- mean(svm.l.pred != test$spam)
+  
+  svm.p.fit <- train(spam ~., data = train, 
+                method = "svmPoly",
+                uneGrid   = expand.grid(c = 1:10),
+                trControl=trControl,
+                preProcess = c("center", "scale"),
+                tuneLength = 10)
+  svm.p.pred <- predict(svm.p.fit, test)
+  error[6, i] <- mean(svm.p.pred != test$spam)
+  
+  svm.r.fit <- train(spam ~., data = train, 
+                method = "svmRadial",
+                uneGrid   = expand.grid(c = 1:10),
+                trControl=trControl,
+                preProcess = c("center", "scale"),
+                tuneLength = 10)
+  svm.r.pred <- predict(svm.r.fit, test)
+  error[7, i] <- mean(svm.r.pred != test$spam)
+  
+}
+```
+
