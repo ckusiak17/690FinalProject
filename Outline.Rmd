@@ -13,10 +13,6 @@ load("spam.Rda")
 ```
 
 #Abstract  
-abstract kkkkk
-
-
-
 
 
 #Introduction  
@@ -32,50 +28,31 @@ abstract kkkkk
 - No missing values 
 
 
-
-
-
-
-
-
-
-
-
 #Methods 
 
-##Dimension Reduction 
-
-
-
-##LASSO  
-
-
-
-
-##Ridge Regression  
-
-
-
-
-##Principle Components Analysis  
-
-
-
-
-
+##preprocessing data 
+###log transformed continuous
+###continuous
+###dummy encoded
 
 
 ##Classification
 
-###Logistic Regression
+### Logistic regression
+### Penalized logistic with lasso penalty
+### Penalized logistic with ridge penalty
+### Penalized logistic with elastic net penalty for equal mixing
+### LDA
+### QDA
+### KNN
+### Linear SVM
+### Polynomial SVM
+### Radial SVM
 
-###Linear Discriminant Analysis  
 
-###Quadratic Discriminant Analysis  
 
-###K-nearest Neighbors  
 
-###Support Vector Machines  
+
 
 
 
