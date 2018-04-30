@@ -17,6 +17,7 @@ This study aims to find the best way to classify the non-spam emails and spam em
 
 
 
+
 #Aims of the project:
 1. Find the best way to classify the spam and non-spam emails
 2. Compare the data with pre-process and without process
@@ -43,7 +44,7 @@ This study aims to find the best way to classify the non-spam emails and spam em
 ##preprocessing data 
 ###log transformed continuous
 ###continuous
-###dummy encoded
+###dummy encoded (control intercept, making categloical data)
 
 
 ##Classification
