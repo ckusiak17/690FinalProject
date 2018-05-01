@@ -125,3 +125,8 @@ library(caret)
 # We need dummy variables for an elastic net
 dummy<-dummyVars(~.,data=cat_data, fullRank = TRUE) #get the dummy variables
 dummy_data<-as.data.frame(predict(dummy, cat_data)) #this just puts it in a data frame and gives nice column names
+
+
+temp$spam <- spam
+temp2$spam <- spam
+dummy_data$spam <- spam
