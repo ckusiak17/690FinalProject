@@ -1,5 +1,5 @@
 
-#push error....
+#push error.....
 # for continuous
 train.size <- .8*nrow(temp2)
 rows <- 1:nrow(temp2)
