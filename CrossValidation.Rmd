@@ -13,10 +13,10 @@ require(MASS)
 require(kernlab)
 require(glmnet)
 require(pls)
-require(penalizedSVM)
+require(randomForest)
 options(xtable.comment = FALSE)
 load("spam.Rda")
-source("preprocess.R")
+#source("preprocess.R")
 ```
 
 Just to begin with, I'm going to set up the loop that runs 10-fold cross validation just on the 5 classification methods: Logistic Regression, LDA, QDA, KNN, and SVM.  
@@ -27,12 +27,12 @@ Just to begin with, I'm going to set up the loop that runs 10-fold cross validat
 #this is 7 X 10 for the 7 classification methods and the 10 CV folds
 error <- auc <- false.pos <- matrix(nrow = 11, ncol = 10)
 method_names <- c("Logistic Regression", "LASSO", "Ridge", "Elastic Net", 
-                  "LDA", "QDA", "KNN", "PCR", "Linear SVM", "Polynomial SVM",
+                  "LDA", "Random Forests", "KNN", "PCR", "Linear SVM", "Polynomial SVM",
                   "Radial SVM")
 rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
 
 lambda.l <- lambda.r <-  lambda.e <- k.knn <- ncomp.pcr <- c()
-log <- plog.l <- plog.r <- plog.e <- lda <- qda <- knn <- pcr <- 
+log <- plog.l <- plog.r <- plog.e <- lda <- rf <- knn <- pcr <- 
   svm.l <- svm.p <- svm.r <- list()
 
 which.lasso <- which.ridge <- which.elastic <- c()
@@ -53,7 +53,7 @@ for (i in 1:10){
   log.pred <- ifelse(log.prob > .5, 1, 0)
   error[1, i] <- mean(log.pred != test.spam)
   auc[1, i] <- auc(log.pred, test.spam)
-  false.pos[1, i] <- table(log.pred, test.spam)[2,1]/nrow(test)
+  false.pos[1, i] <- table(log.pred, test.spam)[2,1]/(table(log.pred, test.spam)[2,1] + table(log.pred, test.spam)[1,1])
   log[[i]] <- log.fit
   
   
@@ -70,7 +70,7 @@ for (i in 1:10){
   for (lambda in 1:ncol(plog.l.pred)){
     l.error[lambda] <-  mean(plog.l.pred[,lambda] != test.spam)
     l <- data.frame(pred = plog.l.pred[,lambda], true = test.spam)
-    l.false[lambda] <- nrow(filter(l, pred == 1, true == 0))/nrow(test)
+    l.false[lambda] <- nrow(filter(l, pred == 1, true == 0))/nrow(filter(l, true == 0))
   }
   error[2, i] <- min(l.error) #chooses error for best penalty
   false.pos[2, i] <- l.false[which.min(l.error)]
@@ -88,7 +88,7 @@ for (i in 1:10){
   for (lambda in 1:ncol(plog.r.pred)){
     r.error[lambda] <-  mean(plog.r.pred[,lambda] != test.spam)
     r <- data.frame(pred = plog.r.pred[,lambda], true = test.spam)
-    r.false[lambda] <- nrow(filter(r, pred == 1, true == 0))/nrow(test)
+    r.false[lambda] <- nrow(filter(r, pred == 1, true == 0))/nrow(filter(r, true == 0))
   }
   error[3, i] <- min(r.error)
   auc[3, i] <- auc(plog.r.pred[,which.min(r.error)], test.spam)
@@ -106,7 +106,7 @@ for (i in 1:10){
   for (lambda in 1:ncol(plog.e.pred)){
     e.error[lambda] <-  mean(plog.e.pred[,lambda] != test.spam)
     e <- data.frame(pred = plog.e.pred[,lambda], true = test.spam)
-    e.false[lambda] <- nrow(filter(e, pred == 1, true == 0))/nrow(test)
+    e.false[lambda] <- nrow(filter(e, pred == 1, true == 0))/nrow(filter(e, true == 0))
   }
   error[4, i] <- min(e.error)
   auc[4, i] <- auc(plog.e.pred[,which.min(e.error)], test.spam)
@@ -120,19 +120,19 @@ for (i in 1:10){
   lda.pred <- predict(lda.fit, test)$class
   error[5, i] <- mean(lda.pred != test.spam)
   auc[5, i] <- auc(ifelse(lda.pred == 1, 1, 0), test.spam) #needed to convert from factor
-  false.pos[5, i] <- table(lda.pred, test.spam)[2,1]/nrow(test)
+  false.pos[5, i] <- table(lda.pred, test.spam)[2,1]/(table(lda.pred, test.spam)[2,1] + table(lda.pred, test.spam)[1,1])
   lda[[i]] <- lda.fit
   
-  #Quadratic Discriminant Analysis
-  #qda.fit <- qda(spam ~., data = train)
-  #qda.pred <- predict(qda.fit, test)$class
-  #error[6, i] <- mean(qda.pred != test.spam)
-  #auc[6, i] <- auc(ifelse(qda.pred == 1, 1, 0), test.spam)
-  #false.pos[6, i] <- table(qda.pred, test.spam)[2,1]/nrow(test)
-  #qda[[i]] <- qda.fit
   
+  #random forests
+  rf.fit <- randomForest(formula = spam ~ ., data =  train)
+  rf.pred <- predict(rf.fit, test)
+  error[6, i] <- mean(rf.pred != test.spam)
+  auc[6, i] <- auc(ifelse(rf.pred == 1, 1, 0), test.spam) #needed to convert from factor
+  false.pos[6, i] <- table(rf.pred, test.spam)[2,1]/(table(rf.pred, test.spam)[2,1] + table(rf.pred, test.spam)[1,1])
+  rf[[i]] <- rf.fit
   
-  #K-Nearest Neighbors
+#K-Nearest Neighbors
   #this runs a 10 fold cross validation to determine
   #which value of k is optimal for knn
   trControl <- trainControl(method  = "cv",
@@ -146,7 +146,7 @@ for (i in 1:10){
   knn.pred <- predict(knn.fit, test)
   error[7, i] <- mean(knn.pred != test.spam)  
   auc[7, i] <- auc(ifelse(knn.pred == 1, 1,0 ), test.spam)
-  false.pos[7, i] <- table(knn.pred, test.spam)[2,1]/nrow(test)
+  false.pos[7, i] <- table(knn.pred, test.spam)[2,1]/(table(knn.pred, test.spam)[2,1] + table(knn.pred, test.spam)[1,1])
   k.knn[i] <- knn.fit$bestTune[1,1]
   knn[[i]] <- knn.fit
   
@@ -164,7 +164,7 @@ for (i in 1:10){
   pcr.pred <- ifelse(pcr.prob > .5, 1, 0)
   error[8, i] <- mean(pcr.pred != test.spam)
   auc[8, i] <- auc(pcr.pred, test.spam)
-  false.pos[8, i] <- table(pcr.pred, test.spam)[2,1]/nrow(test)
+  false.pos[8, i] <- table(pcr.pred, test.spam)[2,1]/(table(pcr.pred, test.spam)[2,1] + table(pcr.pred, test.spam)[1,1])
   pcr[[i]] <- pcr.fit
   
   #each of the svm methods also require an optimal value for C, 
@@ -178,7 +178,8 @@ for (i in 1:10){
   svm.l.pred <- predict(svm.l.fit, test)
   error[9, i] <- mean(svm.l.pred != test.spam)
   auc[9, i] <- auc(ifelse(svm.l.pred ==1, 1, 0 ), test.spam)
-  false.pos[9, i] <- table(svm.l.pred, test.spam)[2,1]/nrow(test)
+  false.pos[9, i] <- table(svm.l.pred, test.spam)[2,1]/
+    (table(svm.l.pred, test.spam)[2,1] + table(svm.l.pred, test.spam)[1,1])
   svm.l[[i]] <- svm.l.fit
   
   
@@ -191,7 +192,8 @@ for (i in 1:10){
   svm.p.pred <- predict(svm.p.fit, test)
   error[10, i] <- mean(svm.p.pred != test.spam)
   auc[10, i] <- auc(ifelse(svm.p.pred ==1, 1, 0 ), test.spam)
-  false.pos[10, i] <- table(svm.p.pred, test.spam)[2,1]/nrow(test)
+  false.pos[10, i] <- table(svm.p.pred, test.spam)[2,1]/
+    (table(svm.p.pred, test.spam)[2,1] + table(svm.p.pred, test.spam)[1,1])
   svm.p[[i]] <- svm.p.fit
   
   svm.r.fit <- train(spam ~., data = train, 
@@ -203,7 +205,8 @@ for (i in 1:10){
   svm.r.pred <- predict(svm.r.fit, test)
   error[11, i] <- mean(svm.r.pred != test.spam)
   auc[11, i] <- auc(ifelse(svm.r.pred ==1, 1, 0 ), test.spam)
-  false.pos[11, i] <- table(svm.r.pred, test.spam)[2,1]/nrow(test)
+  false.pos[11, i] <- table(svm.r.pred, test.spam)[2,1]/
+    (table(svm.r.pred, test.spam)[2,1] + table(svm.r.pred, test.spam)[1,1])
   svm.r[[i]] <- svm.r.fit
   
   
@@ -223,7 +226,7 @@ colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 #change the file name example: CrossValidationTemp2.Rda
 #save(error, auc, false.pos, 
 #     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr,
-#     log, plog.l, plog.r, plog.e, lda, qda, knn, pcr, svm.l, svm.p, svm.r,
+#     log, plog.l, plog.r, plog.e, lda, rf, knn, pcr, svm.l, svm.p, svm.r,
 #     which.lasso, which.ridge, which.elastic,
 #     file = "CrossValidation.Rda")
 ```
