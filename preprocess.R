@@ -1,5 +1,5 @@
 
-
+load("spam.Rda")
 
 ###########################
 ###########################
@@ -16,10 +16,10 @@ temp$spam=NULL
 #step 1.1 bin sparse similar data
 ###########################
 #lets add but not remove features, dimensions reduction/feature selection can choose the prefered feature
-temp$word_address_bin <- temp$word_address + temp$word_addresses
+#temp$word_address_bin <- temp$word_address + temp$word_addresses
 #temp$word_address <- NULL
 #temp$word_addresses <- NULL
-temp$word_you_bin <- temp$word_you +temp$word_your
+#temp$word_you_bin <- temp$word_you +temp$word_your
 
 
 
