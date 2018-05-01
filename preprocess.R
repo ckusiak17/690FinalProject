@@ -85,24 +85,41 @@ spambase <- NULL
 #step 4 making categorical data
 ###########################
 #make categorical data
+#should rename these percentiles instead but w.e
 get_quantiles <-function(x) quantile(x=x,seq(0,1,.25))
+get_quantiles_zero_1 <- function(x) quantile(x=x[x!=0], seq(0,1,1/3)) 
+get_quantiles_zero_2 <- function(x) quantile(x=x[x!=0], seq(0,1,.5))
 #this function will output a matrix called data which is categorical
 cut_columns <- function(cat_data) {
   for (i in 1:length(cat_data)) {
-    #name <- colnames(data)[i] #save the column name, may need it later
     x <- cat_data[,i] #save one variable at a time
-    qnt <- get_quantiles(x) #get quantiles of saved variable
-    newx <- cut(x, unique(qnt), include.lowest = TRUE) #cut into categories using unique quantiles, we often have 2 quantiles that fit to zero since its zero inflated
-    newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
-    if (sum(as.numeric((levels(newx))))==1){
+    if (sum(x==0)>((3/4)*nrow(cat_data))) { #extreme case, added this after the process so it doesnt have a name lol
       logic <- x==0
       x[!logic] <- 1
       newx <- x
-    }
-    else {
-    }
+          } else if (sum(x==0)>((1/2)*nrow(cat_data))) { #zero2
+            qnt <- get_quantiles_zero_2(x) #get quantiles of saved variable
+            newx <- cut(x, c(0,unique(qnt)), include.lowest = TRUE) #cut into categories using unique percentiles
+            newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
+            } else if (sum(x==0)>((1/4)*nrow(cat_data))) { #zero1
+              qnt <- get_quantiles_zero_1(x) #get quantiles of saved variable
+              newx <- cut(x, c(0,unique(qnt)), include.lowest = TRUE) #cut into categories using unique percentiles
+              newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
+              } else { #not zero inflated
+                qnt <- get_quantiles(x) #get quantiles of saved variable
+                newx <- cut(x, unique(qnt), include.lowest = TRUE) #cut into categories using unique percentiles
+                newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
+              }
+    
+    #this extreme case has been added to the if else and looks like a better setup, if function ever fails just delete comments and allow this statement to exist
+    #if (sum(as.numeric((levels(newx))))==1){
+     # logic <- x==0
+     # x[!logic] <- 1
+     # newx <- x
+    #}
+    #else {
+    #}
     cat_data[,i] <<- newx #replace the numeric variable in the data with our new categorical variable
-    #colnames(data)[i] <- name #gives the column the proper name.. incase it changed when it was reassigned data
   }#end loop
 }#end function
 
@@ -111,8 +128,6 @@ cat_data <- matrix(nrow=nrow(temp), ncol=ncol(temp))
 cut_columns(temp2) # gives us a matrix called data which is categorical
 cat_data <- as.data.frame(cat_data)#make a data frame
 colnames(cat_data)<-colnames(temp)#assign column names
-
-
 
 
 ###########################
