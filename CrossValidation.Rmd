@@ -13,6 +13,7 @@ require(MASS)
 require(kernlab)
 require(glmnet)
 require(pls)
+require(penalizedSVM)
 options(xtable.comment = FALSE)
 load("spam.Rda")
 ```
@@ -30,18 +31,20 @@ method_names <- c("Logistic Regression", "LASSO", "Ridge", "Elastic Net",
 rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
 
 lambda.l <- lambda.r <-  lambda.e <- k.knn <- ncomp.pcr <- c()
-log <- plog.l <- plog.r <- plog.e <- lda <- qda <- knn <- pcr <- svm.l <- svm.p <- svm.r <- list()
+log <- plog.l <- plog.r <- plog.e <- lda <- qda <- knn <- pcr <- 
+  svm.l <- svm.p <- svm.r <- list()
 
+which.lasso <- which.ridge <- which.elastic <- c()
 
 
 spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
 for (i in 1:10){
   #create a training and test set
-  #[,-59] removes the index variable
-  train <- filter(spam, index == i)[,-59]
-  test.spam <- filter(spam, index != i)$spam
-  test <- filter(spam, index != i)[,-c(58,59)]
+  #ADD LASSO
   
+  train <- subset(filter(spam, index == i), select = -index)
+  test.spam <- filter(spam, index != i)$spam
+  test <- subset(filter(spam, index != i), select = - c(index, spam))
   
   #logistic regression
   log.fit <- glm(spam ~ ., data = train, famil= binomial)
@@ -54,7 +57,7 @@ for (i in 1:10){
   
   
   #data set up for penalized logistic regressions
-  x <- as.matrix(train[,-58]) #removes spam from the dataframe
+  x <- as.matrix(subset(train, select = -spam)) #removes spam from the dataframe
   x.test <- as.matrix(test)
   
   #lasso penalty, alpda = 1
@@ -70,6 +73,7 @@ for (i in 1:10){
   }
   error[2, i] <- min(l.error) #chooses error for best penalty
   false.pos[2, i] <- l.false[which.min(l.error)]
+  which.lasso <- which.min(l.error)
   auc[2, i] <- auc(plog.l.pred[,which.min(l.error)], test.spam)
   lambda.l[i] <- plog.l.fit$lambda[which.min(l.error)] #identifies best lambda from model fit
   plog.l[[i]] <- plog.l.fit
@@ -87,6 +91,7 @@ for (i in 1:10){
   }
   error[3, i] <- min(r.error)
   auc[3, i] <- auc(plog.r.pred[,which.min(r.error)], test.spam)
+  which.ridge <- which.min(r.error)
   false.pos[3, i] <- r.false[which.min(r.error)]
   lambda.r[i] <- plog.r.fit$lambda[which.min(r.error)]
   plog.r[[i]] <- plog.r.fit
@@ -104,6 +109,7 @@ for (i in 1:10){
   }
   error[4, i] <- min(e.error)
   auc[4, i] <- auc(plog.e.pred[,which.min(e.error)], test.spam)
+  which.elastic <- which.min(e.error)
   false.pos[4, i] <- e.false[which.min(e.error)]
   lambda.e[i] <- plog.e.fit$lambda[which.min(e.error)]
   plog.e[[i]] <- plog.e.fit
@@ -175,29 +181,34 @@ for (i in 1:10){
   svm.l[[i]] <- svm.l.fit
   
   
-  #svm.p.fit <- train(spam ~., data = train, 
-  #              method = "svmPoly",
-  #              uneGrid   = expand.grid(c = 1:10),
-  #              trControl=trControl,
-  #              preProcess = c("center", "scale"),
-  #              tuneLength = 10)
-  #svm.p.pred <- predict(svm.p.fit, test)
-  #error[10, i] <- mean(svm.p.pred != test.spam)
-  #auc[10, i] <- auc(ifelse(svm.p.pred ==1, 1, 0 ), test.spam)
-  #false.pos[10, i] <- table(svm.p.pred, test.spam)[2,1]/nrow(test)
-  #svm.p[[i]] <- svm.p.fit
+  svm.p.fit <- train(spam ~., data = train, 
+                method = "svmPoly",
+                uneGrid   = expand.grid(c = 1:10),
+                trControl=trControl,
+                preProcess = c("center", "scale"),
+                tuneLength = 10)
+  svm.p.pred <- predict(svm.p.fit, test)
+  error[10, i] <- mean(svm.p.pred != test.spam)
+  auc[10, i] <- auc(ifelse(svm.p.pred ==1, 1, 0 ), test.spam)
+  false.pos[10, i] <- table(svm.p.pred, test.spam)[2,1]/nrow(test)
+  svm.p[[i]] <- svm.p.fit
   
-  #svm.r.fit <- train(spam ~., data = train, 
-  #              method = "svmRadial",
-  #              uneGrid   = expand.grid(c = 1:10),
-  #              trControl=trControl,
-  #              preProcess = c("center", "scale"),
-  #              tuneLength = 10)
-  #svm.r.pred <- predict(svm.r.fit, test)
-  #error[11, i] <- mean(svm.r.pred != test.spam)
-  #auc[11, i] <- auc(ifelse(svm.r.pred ==1, 1, 0 ), test.spam)
-  #false.pos[11, i] <- table(svm.r.pred, test.spam)[2,1]/nrow(test)
-  #svm.r[[i]] <- svm.r.fit
+  svm.r.fit <- train(spam ~., data = train, 
+                method = "svmRadial",
+                uneGrid   = expand.grid(c = 1:10),
+                trControl=trControl,
+                preProcess = c("center", "scale"),
+                tuneLength = 10)
+  svm.r.pred <- predict(svm.r.fit, test)
+  error[11, i] <- mean(svm.r.pred != test.spam)
+  auc[11, i] <- auc(ifelse(svm.r.pred ==1, 1, 0 ), test.spam)
+  false.pos[11, i] <- table(svm.r.pred, test.spam)[2,1]/nrow(test)
+  svm.r[[i]] <- svm.r.fit
+  
+  
+  psvm.l.fit <- svm.fs(x=train.matrix, y=ifelse(train$spam == 0, -1, 1), 
+                       fs.method="1norm", lambda1.set=Lambda.scad)
+  
   
 }
 
@@ -208,9 +219,10 @@ false.pos <- cbind(false.pos, rowMeans(false.pos))
 column.names <- c(paste0("sim", 1:10), "mean")
 colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 
-save(error, auc, false.pos, 
-     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr,
-     log, plog.l, plog.r, plog.e, lda, qda, knn, pcr, svm.l, svm.p, svm.r,
-     file = "CrossValidation.Rda")
+#save(error, auc, false.pos, 
+#     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr,
+#     log, plog.l, plog.r, plog.e, lda, qda, knn, pcr, svm.l, svm.p, svm.r,
+#     which.lasso, which.ridge, which.elastic,
+#     file = "CrossValidation.Rda")
 ```
 
