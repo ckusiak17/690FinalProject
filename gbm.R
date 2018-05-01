@@ -1,5 +1,5 @@
-# Uses same train/test as above
-# This script runs both sets of data, log scaled and dumy encoded
+
+#push error....
 # for continuous
 train.size <- .8*nrow(temp2)
 rows <- 1:nrow(temp2)
