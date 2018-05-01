@@ -13,13 +13,20 @@ load("spam.Rda")
 ```
 
 #Abstract  
-abstract kkkkk
+This study aims to find the best way to classify the non-spam emails and spam emails and compare the different classification methods, especially the methods with penalization and without penalization. The data is comprised of 4601 observations with 57 predictors. Most of the predictors indicate whether a particular word or character is frequently occuring in the email. We would like to use xx classification methods to analyse the data set, including…..Before that, we will use xxx to pre-process the data for xxx. Meanwhile, we will use cross validation to measure the performance of these methods. The results show that xx method performs best. Comparing xxx method, xx methods are more useful in the processes. Additionally, it is necessary to pre-process the data, since the highly correlated predictors might influence the results.  (add identification of predictors) 
 
 
 
 
+#Aims of the project:
+1. Find the best way to classify the spam and non-spam emails
+2. Compare the data with pre-process and without process
+3. Compare the methods that with and without penalization 
+4. Identify the predictors that related with spam or non spam
 
-#Introduction  
+
+#Introduction
+
 
 ##The Problem:  
 
@@ -32,50 +39,31 @@ abstract kkkkk
 - No missing values 
 
 
-
-
-
-
-
-
-
-
-
 #Methods 
 
-##Dimension Reduction 
-
-
-
-##LASSO  
-
-
-
-
-##Ridge Regression  
-
-
-
-
-##Principle Components Analysis  
-
-
-
-
-
+##preprocessing data 
+###log transformed continuous
+###continuous
+###dummy encoded (control intercept, making categloical data)
 
 
 ##Classification
 
-###Logistic Regression
+### Logistic regression
+### Penalized logistic with lasso penalty
+### Penalized logistic with ridge penalty
+### Penalized logistic with elastic net penalty for equal mixing
+### LDA
+### QDA
+### KNN
+### Linear SVM
+### Polynomial SVM
+### Radial SVM
 
-###Linear Discriminant Analysis  
 
-###Quadratic Discriminant Analysis  
 
-###K-nearest Neighbors  
 
-###Support Vector Machines  
+
 
 
 
