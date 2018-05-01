@@ -16,6 +16,7 @@ require(pls)
 require(penalizedSVM)
 options(xtable.comment = FALSE)
 load("spam.Rda")
+source("preprocess.R")
 ```
 
 Just to begin with, I'm going to set up the loop that runs 10-fold cross validation just on the 5 classification methods: Logistic Regression, LDA, QDA, KNN, and SVM.  
@@ -36,7 +37,7 @@ log <- plog.l <- plog.r <- plog.e <- lda <- qda <- knn <- pcr <-
 
 which.lasso <- which.ridge <- which.elastic <- c()
 
-
+#change spambase here
 spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
 for (i in 1:10){
   #create a training and test set
@@ -219,6 +220,7 @@ false.pos <- cbind(false.pos, rowMeans(false.pos))
 column.names <- c(paste0("sim", 1:10), "mean")
 colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 
+#change the file name example: CrossValidationTemp2.Rda
 #save(error, auc, false.pos, 
 #     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr,
 #     log, plog.l, plog.r, plog.e, lda, qda, knn, pcr, svm.l, svm.p, svm.r,
