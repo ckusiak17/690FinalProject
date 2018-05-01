@@ -3,7 +3,7 @@ library("penalizedSVM")
 #for predictors
 train.size <- .8*nrow(dummy_data)
 rows <- 1:nrow(dummy_data)
-train.rows<-sample(1:rows, train.size, replace=F)
+train.rows<-sample(rows, train.size, replace=F)
 test.rows<-subset(rows, !rows%in%train.rows)
 training.set <- dummy_data[train.rows,]
 test.set<- dummy_data[test.rows,]
