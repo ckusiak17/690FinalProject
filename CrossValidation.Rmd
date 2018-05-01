@@ -31,7 +31,7 @@ method_names <- c("Logistic Regression", "LASSO", "Ridge", "Elastic Net",
                   "Radial SVM")
 rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
 
-lambda.l <- lambda.r <-  lambda.e <- k.knn <- ncomp.pcr <- c()
+lambda.l <- lambda.r <-  lambda.e <- k.knn <- ncomp.pcr <- nodes.rf <- c()
 log <- plog.l <- plog.r <- plog.e <- lda <- rf <- knn <- pcr <- 
   svm.l <- svm.p <- svm.r <- list()
 
@@ -74,7 +74,7 @@ for (i in 1:10){
   }
   error[2, i] <- min(l.error) #chooses error for best penalty
   false.pos[2, i] <- l.false[which.min(l.error)]
-  which.lasso <- which.min(l.error)
+  which.lasso[i] <- which.min(l.error)
   auc[2, i] <- auc(plog.l.pred[,which.min(l.error)], test.spam)
   lambda.l[i] <- plog.l.fit$lambda[which.min(l.error)] #identifies best lambda from model fit
   plog.l[[i]] <- plog.l.fit
@@ -92,7 +92,7 @@ for (i in 1:10){
   }
   error[3, i] <- min(r.error)
   auc[3, i] <- auc(plog.r.pred[,which.min(r.error)], test.spam)
-  which.ridge <- which.min(r.error)
+  which.ridge[i] <- which.min(r.error)
   false.pos[3, i] <- r.false[which.min(r.error)]
   lambda.r[i] <- plog.r.fit$lambda[which.min(r.error)]
   plog.r[[i]] <- plog.r.fit
@@ -110,7 +110,7 @@ for (i in 1:10){
   }
   error[4, i] <- min(e.error)
   auc[4, i] <- auc(plog.e.pred[,which.min(e.error)], test.spam)
-  which.elastic <- which.min(e.error)
+  which.elastic[i] <- which.min(e.error)
   false.pos[4, i] <- e.false[which.min(e.error)]
   lambda.e[i] <- plog.e.fit$lambda[which.min(e.error)]
   plog.e[[i]] <- plog.e.fit
@@ -130,6 +130,7 @@ for (i in 1:10){
   error[6, i] <- mean(rf.pred != test.spam)
   auc[6, i] <- auc(ifelse(rf.pred == 1, 1, 0), test.spam) #needed to convert from factor
   false.pos[6, i] <- table(rf.pred, test.spam)[2,1]/(table(rf.pred, test.spam)[2,1] + table(rf.pred, test.spam)[1,1])
+  nodes.rf[i] <- rf.fit$forest$nrnodes
   rf[[i]] <- rf.fit
   
 #K-Nearest Neighbors
@@ -225,7 +226,7 @@ colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 
 #change the file name example: CrossValidationTemp2.Rda
 #save(error, auc, false.pos, 
-#     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr,
+#     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr, nodes.rf,
 #     log, plog.l, plog.r, plog.e, lda, rf, knn, pcr, svm.l, svm.p, svm.r,
 #     which.lasso, which.ridge, which.elastic,
 #     file = "CrossValidation.Rda")
