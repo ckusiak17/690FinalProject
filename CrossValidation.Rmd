@@ -225,10 +225,10 @@ column.names <- c(paste0("sim", 1:10), "mean")
 colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 
 #change the file name example: CrossValidationTemp2.Rda
-#save(error, auc, false.pos, 
-#     lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr, nodes.rf,
-#     log, plog.l, plog.r, plog.e, lda, rf, knn, pcr, svm.l, svm.p, svm.r,
-#     which.lasso, which.ridge, which.elastic,
-#     file = "CrossValidation.Rda")
+save(error, auc, false.pos,
+    lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr, nodes.rf,
+    log, plog.l, plog.r, plog.e, lda, rf, knn, pcr, svm.l, svm.p, svm.r,
+    which.lasso, which.ridge, which.elastic,
+    file = "CrossValidation.Rda")
 ```
 
