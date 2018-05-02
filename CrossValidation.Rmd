@@ -44,9 +44,9 @@ for (i in 1:10){
   #create a training and test set
   #ADD LASSO
   
-  train <- subset(filter(spam, index == i), select = -index)
-  test.spam <- filter(spam, index != i)$spam
-  test <- subset(filter(spam, index != i), select = - c(index, spam))
+  train <- subset(filter(spam, index != i), select = -index)
+  test.spam <- filter(spam, index == i)$spam
+  test <- subset(filter(spam, index == i), select = - c(index, spam))
   
   #logistic regression
   log.fit <- glm(spam ~ ., data = train, famil= binomial)
@@ -154,9 +154,9 @@ for (i in 1:10){
   
   #Principle Components Regression
   nofactor.spam <- mutate(spam, spam = ifelse(spam == 1, 1, 0))
-  nofactor.train <- subset(filter(nofactor.spam, index == i), select = -index)
-  nofactor.test.spam <- filter(nofactor.spam, index != i)$spam
-  nofactor.test <- subset(filter(nofactor.spam, index != i), select = - c(index, spam))
+  nofactor.train <- subset(filter(nofactor.spam, index != i), select = -index)
+  nofactor.test.spam <- filter(nofactor.spam, index == i)$spam
+  nofactor.test <- subset(filter(nofactor.spam, index == i), select = - c(index, spam))
   train.matrix <- model.matrix(spam ~. , data = nofactor.train)[,-1]
   train.spam <- nofactor.train$spam
   pcr.fit <- pcr(spam ~., data = nofactor.train, scale = TRUE, validation = "CV")
