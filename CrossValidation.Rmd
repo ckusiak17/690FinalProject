@@ -38,6 +38,7 @@ log <- plog.l <- plog.r <- plog.e <- lda <- rf <- knn <- pcr <-
 which.lasso <- which.ridge <- which.elastic <- c()
 
 #change spambase here
+set.seed(690)
 spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
 for (i in 1:10){
   #create a training and test set
@@ -153,9 +154,9 @@ for (i in 1:10){
   
   #Principle Components Regression
   nofactor.spam <- mutate(spam, spam = ifelse(spam == 1, 1, 0))
-  nofactor.train <- filter(nofactor.spam, index == i)[,-59]
+  nofactor.train <- subset(filter(nofactor.spam, index == i), select = -index)
   nofactor.test.spam <- filter(nofactor.spam, index != i)$spam
-  nofactor.test <- filter(nofactor.spam, index != i)[,-c(58,59)]
+  nofactor.test <- subset(filter(nofactor.spam, index != i), select = - c(index, spam))
   train.matrix <- model.matrix(spam ~. , data = nofactor.train)[,-1]
   train.spam <- nofactor.train$spam
   pcr.fit <- pcr(spam ~., data = nofactor.train, scale = TRUE, validation = "CV")
@@ -209,10 +210,6 @@ for (i in 1:10){
   false.pos[11, i] <- table(svm.r.pred, test.spam)[2,1]/
     (table(svm.r.pred, test.spam)[2,1] + table(svm.r.pred, test.spam)[1,1])
   svm.r[[i]] <- svm.r.fit
-  
-  
-  psvm.l.fit <- svm.fs(x=train.matrix, y=ifelse(train$spam == 0, -1, 1), 
-                       fs.method="1norm", lambda1.set=Lambda.scad)
   
   
 }
