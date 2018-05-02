@@ -235,4 +235,4 @@ save(error, auc, false.pos,
      lambda.l, lambda.r, lambda.e, k.knn, ncomp.pcr, nodes.rf,
      log, plog.l, plog.r, plog.e, lda, sqda, rf, knn, pcr, svm.l, svm.p, svm.r,
      which.lasso, which.ridge, which.elastic,
-     file = "CrossValidation.Rda")
+     file = "CrossValidationReduced.Rda")
