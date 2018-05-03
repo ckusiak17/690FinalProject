@@ -5,7 +5,7 @@ load("spam.Rda")
 #step 1 remove response spam
 ###########################
 temp<-spambase
-
+spam<-temp$spam
 
 ###########################
 ###########################
@@ -82,7 +82,6 @@ dummy_data<-as.data.frame(predict(dummy, cat_data)) #this just puts it in a data
 
 
 temp$spam <- spam
-temp2$spam <- spam
 dummy_data$spam <- spam
 
 

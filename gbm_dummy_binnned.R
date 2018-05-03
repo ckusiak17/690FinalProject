@@ -12,7 +12,7 @@ options(xtable.comment = FALSE)
 load("spam.Rda")
 
 
-source("preprocess_binned.R")
+source("preprocess_bins.R")
 
 #make an empty matrix to hold the prediction errors
 #this is 7 X 10 for the 7 classification methods and the 10 CV folds
