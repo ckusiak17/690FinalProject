@@ -10,19 +10,6 @@ spam<-temp$spam
 temp$spam=NULL
 
 
-
-###########################
-###########################
-#step 1.1 bin sparse similar data
-###########################
-#lets add but not remove features, dimensions reduction/feature selection can choose the prefered feature
-#temp$word_address_bin <- temp$word_address + temp$word_addresses
-#temp$word_address <- NULL
-#temp$word_addresses <- NULL
-#temp$word_you_bin <- temp$word_you +temp$word_your
-
-
-
 ###########################
 ###########################
 #step 2 transform data
@@ -85,9 +72,15 @@ spambase <- NULL
 #step 4 making categorical data
 ###########################
 #make categorical data
-#should rename these percentiles instead but w.e
+toop <- c()
+for (i in 1:length(temp)) {
+  x <- temp[,i] #save one variable at a time
+  toop[i]<-(sum(x==0)>((3/4)*nrow(temp)))
+}
+sum(toop)
+#43 variables are 3/4 zeros!
+
 get_quantiles <-function(x) quantile(x=x,seq(0,1,.25))
-get_quantiles_zero_1 <- function(x) quantile(x=x[x!=0], seq(0,1,1/3)) 
 get_quantiles_zero_2 <- function(x) quantile(x=x[x!=0], seq(0,1,.5))
 #this function will output a matrix called data which is categorical
 cut_columns <- function(cat_data) {
@@ -97,12 +90,8 @@ cut_columns <- function(cat_data) {
       logic <- x==0
       x[!logic] <- 1
       newx <- x
-          } else if (sum(x==0)>((1/2)*nrow(cat_data))) { #zero2
-            qnt <- get_quantiles_zero_2(x) #get quantiles of saved variable
-            newx <- cut(x, c(0,unique(qnt)), include.lowest = TRUE) #cut into categories using unique percentiles
-            newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
-            } else if (sum(x==0)>((1/4)*nrow(cat_data))) { #zero1
-              qnt <- get_quantiles_zero_1(x) #get quantiles of saved variable
+            } else if (sum(x==0)>((1/4)*nrow(cat_data))) { #zero2
+              qnt <- get_quantiles_zero_2(x) #get quantiles of saved variable
               newx <- cut(x, c(0,unique(qnt)), include.lowest = TRUE) #cut into categories using unique percentiles
               newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
               } else { #not zero inflated
@@ -110,22 +99,14 @@ cut_columns <- function(cat_data) {
                 newx <- cut(x, unique(qnt), include.lowest = TRUE) #cut into categories using unique percentiles
                 newx <- factor(newx, labels=1:length(levels(newx))) #gives simple numeric names to the levels instead of the quantile value... just looks nice
               }
-    
-    #this extreme case has been added to the if else and looks like a better setup, if function ever fails just delete comments and allow this statement to exist
-    #if (sum(as.numeric((levels(newx))))==1){
-     # logic <- x==0
-     # x[!logic] <- 1
-     # newx <- x
-    #}
-    #else {
-    #}
+
     cat_data[,i] <<- newx #replace the numeric variable in the data with our new categorical variable
   }#end loop
 }#end function
 
 #we have to create an empty matrix first.... if you have a better way to do this please tell me. this seems sloppy
 cat_data <- matrix(nrow=nrow(temp), ncol=ncol(temp))
-cut_columns(temp2) # gives us a matrix called data which is categorical
+cut_columns(temp) # gives us a matrix called data which is categorical
 cat_data <- as.data.frame(cat_data)#make a data frame
 colnames(cat_data)<-colnames(temp)#assign column names
 
@@ -145,3 +126,40 @@ dummy_data<-as.data.frame(predict(dummy, cat_data)) #this just puts it in a data
 temp$spam <- spam
 temp2$spam <- spam
 dummy_data$spam <- spam
+
+
+library(ggplot2)
+ggplot(temp, aes(x =center_distance,
+                 fill=factor(spam)
+)) +
+  geom_bar(stat="bin")
+
+temp$outlier_not<-ifelse(temp$center_distance>15,0,1)
+summary(temp$center_distance)
+which.max(temp$center_distance)
+sum(!temp$outlier&temp$spam)
+
+###########################
+###########################
+#step 1 remove response spam
+###########################
+temp3<-spambase
+
+
+###########################
+###########################
+#step 1.1 bin sparse similar data
+###########################
+#lets add but not remove features, dimensions reduction/feature selection can choose the prefered feature
+temp3$word_address_bin <- temp3$word_address + temp3$word_addresses
+temp3$word_address <- NULL
+temp3$word_addresses <- NULL
+temp3$word_you_bin <- temp3$word_you +temp3$word_your
+temp3$word_you <- NULL
+temp3$word_your <- NULL
+temp3$word_business_bin <- temp3$word_business + temp3$word_meeting + temp3$word_conference + temp3$word_project
+temp3$word_meeting <- NULL
+temp3$word_conference <- NULL
+temp3$word_project <- NULL
+temp3$word_business <- NULL
+
