@@ -56,8 +56,8 @@ centers <- kmeans.result$centers[kmeans.result$cluster, ]
 distances <- sqrt(rowSums((scaled_temp - centers)^2))
 summary(distances)
 #now lets add this feature to our data
-temp2$center_distance<-distances
-temp$center_distance<-distances
+#temp2$center_distance<-distances
+#temp$center_distance<-distances
 #we dont need some global env stuff so lets get rid of it
 #this is good practice because global objects use up RAM, slow down R
 scaled_temp <- NULL
@@ -128,38 +128,15 @@ temp2$spam <- spam
 dummy_data$spam <- spam
 
 
-library(ggplot2)
-ggplot(temp, aes(x =center_distance,
-                 fill=factor(spam)
-)) +
-  geom_bar(stat="bin")
+#library(ggplot2)
+#ggplot(temp, aes(x =center_distance,
+#                 fill=factor(spam)
+#)) +
+#  geom_bar(stat="bin")
 
-temp$outlier_not<-ifelse(temp$center_distance>15,0,1)
-summary(temp$center_distance)
-which.max(temp$center_distance)
-sum(!temp$outlier&temp$spam)
+#temp$outlier_not<-ifelse(temp$center_distance>15,0,1)
+#summary(temp$center_distance)
+#which.max(temp$center_distance)
+#sum(!temp$outlier&temp$spam)
 
-###########################
-###########################
-#step 1 remove response spam
-###########################
-temp3<-spambase
-
-
-###########################
-###########################
-#step 1.1 bin sparse similar data
-###########################
-#lets add but not remove features, dimensions reduction/feature selection can choose the prefered feature
-temp3$word_address_bin <- temp3$word_address + temp3$word_addresses
-temp3$word_address <- NULL
-temp3$word_addresses <- NULL
-temp3$word_you_bin <- temp3$word_you +temp3$word_your
-temp3$word_you <- NULL
-temp3$word_your <- NULL
-temp3$word_business_bin <- temp3$word_business + temp3$word_meeting + temp3$word_conference + temp3$word_project
-temp3$word_meeting <- NULL
-temp3$word_conference <- NULL
-temp3$word_project <- NULL
-temp3$word_business <- NULL
 
