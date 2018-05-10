@@ -18,6 +18,9 @@ registerDoMC()
 options(xtable.comment = FALSE)
 #load("spam.Rda")
 source("preprocess.R")
+load("spam.Rda")
+
+library(doParallel)
 registerDoParallel(cores = 6) # definitely need this line
 
 
@@ -25,7 +28,7 @@ registerDoParallel(cores = 6) # definitely need this line
 set.seed(690)
 cvfold <- 10
 fold_size <- nrow(dummy_data)/cvfold
-spam <- mutate(dummy_data, spam = as.factor(spam), index = sample(rep(1:cvfold, each = fold_size)))
+spam <- mutate(spambase, spam = as.factor(spam), index = sample(rep(1:10, each = 460)))
 #name your repsonse response! lets make this reproducible
 #future work
 
@@ -33,13 +36,13 @@ spam <- mutate(dummy_data, spam = as.factor(spam), index = sample(rep(1:cvfold, 
 
 #make an empty matrix to hold the prediction errors
 #this is 7 X 10 for the 7 classification methods and the 10 CV folds
-method_names <- c( "LASSO", "KNN", "PCR", "RandomForest", "LDA", "SVMpolynomial", "SVMlinear")
+method_names <- c( "LASSO", "KNN", "PCR", "RandomForest", "LDA", "SVMlinear")
 method_probs <- array(dim=c(length(method_names), cvfold, fold_size))
 error <- auc <- false.pos <- matrix(nrow = length(method_names), ncol = cvfold)
 rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
 
 lambda.l <- k.knn <- ncomp.pcr <- nodes.rf <- c()
-  plog.l <- knn <- pcr <- 
+plog.l <- knn <- pcr <- 
   svm.l <- list()
 
 registerDoParallel(cores = 8)
@@ -105,7 +108,7 @@ for (i in 1:cvfold){
                    trControl  = trControl,
                    metric     = "Accuracy",
                    data       = train)
-
+  
   knn.pred <- predict(knn.fit, test)
   knn.probability <- predict(knn.fit, test, type="prob")
   method_probs[method_index,i,]<-knn.probability[[2]]
@@ -113,7 +116,7 @@ for (i in 1:cvfold){
   auc1 <- roc(test.spam, knn.probability[[2]])
   auc[method_index, i] <- auc1$auc
   false.pos[method_index, i] <- table(knn.pred, test.spam)[2,1]/(table(knn.pred, test.spam)[2,1] + table(knn.pred, test.spam)[1,1])
-
+  
   
   ##################################################################################################################################
   ##################################################################################################################################
@@ -139,7 +142,7 @@ for (i in 1:cvfold){
   error[method_index, i] <- mean(pcr.pred != test.spam)
   auc1 <- roc(test.spam, pcr.prob)
   auc[method_index, i] <- auc1$auc
- 
+  
   
   ##################################################################################################################################
   ##################################################################################################################################
@@ -149,7 +152,7 @@ for (i in 1:cvfold){
   mnames<-"RandomForest"
   method_index<-which(method_names%in%mnames)
   
-
+  
   # Random Search
   training.set <- train
   training.set.y <- training.set$spam
@@ -185,7 +188,11 @@ for (i in 1:cvfold){
   method_probs[method_index,i,]<-lda.prob
   error[method_index, i] <- mean(lda.pred != test.spam)
   auc[method_index, i] <- roc(test.spam, lda.prob)$auc
+  
+  ##################################################################################################################################
+  ##################################################################################################################################
 
+  
   ##################################################################################################################################
   ##################################################################################################################################
   
@@ -234,53 +241,6 @@ for (i in 1:cvfold){
   ##################################################################################################################################
   ##################################################################################################################################
   
-
-  #SVMpolynomial
-  mnames<-"SVMpolynomial"
-  method_index<-which(method_names%in%mnames)
-  
-  #re define data, previous svm may have overwritten this
-  train <- subset(filter(spam, index != i), select = -index)
-  test.spam <- filter(spam, index == i)$spam
-  test <- subset(filter(spam, index == i), select = - c(index, spam))
-  
-  #re define formula
-  allVars <- colnames(train)
-  predictorVars <- allVars[!allVars%in%"spam"]
-  predictorVars <- paste(predictorVars, collapse ="+")
-  form=as.formula(paste("spam~",predictorVars,collapse="+"))
-  
-  ## set folds for tuning
-  train$fold <- caret::createFolds(1:nrow(train), k = 4, list = FALSE)
-  ### PARAMETER LIST ###
-  cost <- c(10, 100)
-  gamma <- c(1, 2)
-  parms <- expand.grid(cost = cost, gamma = gamma)
-  ### LOOP THROUGH PARAMETER VALUES ###
-  result <- foreach(k = 1:nrow(parms), .combine = rbind) %do% {
-    c <- parms[k, ]$cost
-    g <- parms[k, ]$gamma
-    ### K-FOLD VALIDATION ###
-    out <- foreach(j = 1:max(train$fold), .combine = rbind, .inorder = FALSE) %dopar% {
-      deve <- train[train$fold != j, ]
-      test <- train[train$fold == j, ]
-      mdl <- e1071::svm(form, data = deve, type = "C-classification", kernel = "polynomial", cost = c, gamma = g, probability = TRUE)
-      pred <- predict(mdl, test, decision.values = TRUE, probability = TRUE)
-      data.frame(y = test$spam, prob = attributes(pred)$probabilities[, 2])
-    }
-    ### CALCULATE SVM PERFORMANCE ###
-    roc <- pROC::roc(as.factor(out$y), out$prob) 
-    data.frame(parms[k, ], roc = roc$auc[1])
-  }
-  
-  result
-  c<-result[which.max(result$roc),]$cost
-  g<-result[which.max(result$roc),]$gamma
-  mdl <- e1071::svm(form, data = train, type = "C-classification", kernel = "polynomial", cost = c, gamma = g, probability = TRUE)
-  pred <- predict(mdl, test, decision.values = TRUE, probability = TRUE)
-  method_probs[method_index, i, ] <- attributes(pred)$probabilities[, 2]
-  auc[method_index, i]<-pROC::roc(test.spam,attributes(pred)$probabilities[, 2])$auc 
-  
   print(paste("Fold number", i, "is now finished.", sep = " "))
 }
 
@@ -297,79 +257,15 @@ auc_results<-rowMeans(auc)
 ##################################################################################################################################
 ##################################################################################################################################
 
-
-
-
-
-avg_probs<-colMeans(method_probs)
-auc_fold <-c()
-for (i in 1:cvfold){
-  train <- subset(filter(spam, index != i), select = -index)
-  test.spam <- filter(spam, index == i)$spam
-  test <- subset(filter(spam, index == i), select = - c(index, spam))
-  
-  auc1 <- roc(test.spam, avg_probs[i,])
-  auc_fold[i] <- auc1$auc
-}
-mean(auc_fold)
-
-# this did not work so well. it resulted in a lower AUC than GBM alone
-# it may be because we used probability instead of majority vote
-# it may also be because of correlation between models
-# lets check correlation between models and make a better selection for our enssemble
-
-
-
-
-# First lets make data frame/correlation matrix to store values
-cor_df <- data.frame(matrix(nrow=length(method_names), ncol=length(method_names)))
-row.names(cor_df) <- paste0(method_names)
-colnames(cor_df) <- paste0(method_names)
-
-# Most importantly this loop contains code to append folds into a long vector (using melt)
-# This allows us to get the correlation between the predictions from methods
-# We will need to reset the temp matrix after starting a new method and before going through the cv fold loop
-for (i in 1:length(method_names)){ #method loop
-  tempx <- tempy <- as.data.frame(matrix(nrow=fold_size, ncol=cvfold))
-  for (c in 1:cvfold){ #cv fold loop
-    tempx[,c]<-method_probs[i,c,]
-  }
-  tempx <- melt(tempx, value.name='prob',variable.name='V')[2]
-    for (j in 1:length(method_names)){ #method loop 2
-      tempy <- as.data.frame(matrix(nrow=fold_size, ncol=cvfold))
-      for (v in 1:cvfold){ #cv fold loop for each method of comparison
-        tempy[,v]<-method_probs[j,v,]
-      }
-      tempy <- melt(tempy, value.name='prob',variable.name='V')[2]
-      cor_df[i,j]<-cor(tempx ,tempy)
-    }
-}
-
-#from inspection glm and gbm are too correlated, lets remove glm
-rowMeans(auc)
-
-meth2<-method_probs[c(-5,-6,-7),,]
-dim(meth2)
-avg_probs<-colMeans(meth2)
-auc_fold <-c()
-for (i in 1:cvfold){
-  train <- subset(filter(spam, index != i), select = -index)
-  test.spam <- filter(spam, index == i)$spam
-  test <- subset(filter(spam, index == i), select = - c(index, spam))
-  
-  auc1 <- roc(test.spam, avg_probs[i,])
-  auc_fold[i] <- auc1$auc
-}
-mean(auc_fold)
-ensemble_result <- mean(auc_fold)
-#hmm ... it doesn't improve performance
-#in other words correlated models don't hurt ...?
-
-
-
-
-
+auc_results_cont <- auc_results
+method_probs_cont <- method_probs
 #change the file name example: CrossValidationTemp2.Rda
-save(auc_results, method_probs, cor_df, ensemble_result, 
-     file = "Ensemble_results.Rda")
+save(auc_results_cont, method_probs_cont, 
+     file = "Ensemble_results_cont.Rda")
+
+
+
+
+
+
 

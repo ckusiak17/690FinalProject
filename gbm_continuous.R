@@ -20,6 +20,9 @@ error <- auc <- false.pos <- matrix(nrow = 1, ncol = 10)
 method_names <- c("GBM")
 rownames(error) <- rownames(auc) <- rownames(false.pos) <- method_names
 
+gbm_auc_cont<- matrix(nrow = 1, ncol = 10)
+method_names <- c("GBM")
+gbm_prob_cont <- matrix(nrow = 460, ncol = 10)
 
 #change spambase here
 set.seed(690)
@@ -58,6 +61,11 @@ for (i in 1:10){
   gbm.pred<-predict(object = gbm.fit, test, type='raw')
   gbm.pred<-ifelse(gbm.pred=='yes',1,0)
   
+  gbm_prob_cont[,i]<-gbm.prob[[2]]
+  
+  auc1 <- roc(test.spam, gbm.prob[[2]])
+  gbm_auc_cont[1,i]<-auc1$auc
+
   
   auc1 <- roc(test.spam, gbm.prob[[2]])
   auc[1,i]<-auc1$auc
@@ -77,6 +85,8 @@ false.pos <- cbind(false.pos, rowMeans(false.pos))
 column.names <- c(paste0("sim", 1:10), "mean")
 colnames(error) <- colnames(auc) <- colnames(false.pos) <- column.names
 
+
+
 #change the file name example: CrossValidationTemp2.Rda
-save(error, auc, false.pos,
-     file = "gbmcont.Rda")
+save(gbm_auc, gbm_prob,
+     file = "gbm_results_cont.Rda")
